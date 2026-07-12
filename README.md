@@ -33,15 +33,27 @@ Known Limitations:
 
 ---
 
-## Requirements
-
-- Windows with Python 3.10 or newer (the launchers use `python` / `pythonw`).
+- Python 3.10 or newer on **Windows, Linux, or macOS** — the app is pure Python
+  and `tkinter`, so it runs anywhere Python does.
 - A Gmail account to send notifications from (set up in the [Quickstart](#quickstart)).
 
 The email and GUI code use only the Python standard library. The optional
-`pystray` and `Pillow` packages add the system-tray icon; without them the app
-still works but the close button just minimizes the window instead of hiding to
-the tray.
+`pystray` and `Pillow` packages add the system-tray icon. Without them the app
+still works, but closing the window quits the app instead of hiding it to the
+tray; you can also always exit with the **Quit** button on the Settings tab.
+
+A few features are platform-specific and degrade gracefully elsewhere:
+
+| Feature | Windows | Linux / macOS |
+|---|---|---|
+| System-tray icon (needs `pystray` + `Pillow`) | Yes | Yes (Linux may need a tray/AppIndicator extension in your desktop) |
+| App-password encryption at rest | Yes (Windows DPAPI) | Stored in plaintext in `config.json` — see [Where settings are stored](#where-settings-are-stored) |
+| Single-instance guard | Yes | Not enforced — avoid launching two copies yourself |
+
+> **Note on `tkinter`:** it ships with the official Python installers on Windows
+> and macOS. On some Linux distros it's a separate package — install it with
+> e.g. `sudo apt install python3-tk` (Debian/Ubuntu) or `sudo dnf install
+> python3-tkinter` (Fedora) if launching fails with `ModuleNotFoundError: tkinter`.
 
 ---
 
@@ -51,23 +63,34 @@ Install dependencies, set up a Gmail sender, launch the app, and start tracking
 a course — a few minutes end to end.
 
 **Install Python 3.10+**:
-Download Python 3.10 or newer from the [Microsoft Store](https://apps.microsoft.com/detail/9PNRBTZXMB4Z?hl=en-us&gl=CA&ocid=pdpshare).
 
-**Download:** Grab the ClassAvailability.zip latest release from
-**[Here](https://github.com/Kenships/ClassAvailability/releases/)**,
-Then unzip it to a folder of your choice.
+- **Windows:** download from the [Microsoft Store](https://apps.microsoft.com/detail/9PNRBTZXMB4Z?hl=en-us&gl=CA&ocid=pdpshare)
+  or [python.org](https://www.python.org/downloads/).
+- **macOS:** download from [python.org](https://www.python.org/downloads/), or
+  `brew install python-tk` (which pulls in Python with `tkinter`).
+- **Linux:** install via your package manager, including the `tkinter` package —
+  e.g. `sudo apt install python3 python3-tk` (Debian/Ubuntu) or
+  `sudo dnf install python3 python3-tkinter` (Fedora).
+
+**Download:** Grab the latest ClassAvailability release from
+**[Here](https://github.com/Kenships/ClassAvailability/releases/)**, then unzip
+it to a folder of your choice.
 
 ### 1. Install
 
-1. Open the folder you unzipped.
-2. Double-click **`install.bat`**. This upgrades `pip` and installs the packages
-   in `requirements.txt` (`pystray`, `Pillow`). Wait for it to print `Done.`
+This installs the optional tray packages (`pystray`, `Pillow`).
 
-Manual alternative:
+**Windows:** open the unzipped folder and double-click **`install.bat`**. It
+upgrades `pip` and installs the packages in `requirements.txt`. Wait for it to
+print `Done.`
+
+**Any platform** (manual alternative):
 
 ```
 python -m pip install -r requirements.txt
 ```
+
+On Linux/macOS you may need `python3` and `pip3` instead of `python` / `pip`.
 
 ### 2. Set up the sending email
 
@@ -93,15 +116,19 @@ App Password** — not your normal account password.
 
 Launch the app:
 
-- **`run.bat`** — silent launch with `pythonw` (no console window). Use this for
-  everyday use.
-- **`run-debug.bat`** — launches with a console window so you can see log output.
-  Use this if something isn't working.
+- **Windows:** double-click **`run.bat`** for a silent launch with `pythonw` (no
+  console window) — use this for everyday use — or **`run-debug.bat`** to launch
+  with a console window so you can see log output if something isn't working.
+- **Linux / macOS:** run `python3 app.py` from the app folder. Add a trailing
+  `&` (or use `nohup`) to keep it running after you close the terminal. The
+  console output is the equivalent of `run-debug.bat`.
 
-Only one copy runs at a time: if ClassAvailability is already running and you
-launch it again, the second copy detects the first, shows a brief "already
-running" message, and exits. If a launch seems to do nothing, check the **system
-tray** (near the clock) and choose **Show ClassAvailability**.
+On Windows, only one copy runs at a time: if ClassAvailability is already running
+and you launch it again, the second copy detects the first, shows a brief
+"already running" message, and exits. (This single-instance guard is
+Windows-only; on Linux/macOS, take care not to start two copies yourself, as two
+pollers would double up emails.) If a launch seems to do nothing, check the
+**system tray** and choose **Show ClassAvailability**.
 
 The window has four tabs — **Tracked Courses**, **Add Course**, **Profiles**,
 and **Settings**. Open **Settings** and fill in **Email notifications**:
@@ -230,8 +257,13 @@ hides it to the tray instead of quitting, so polling keeps running. Right-click
 - **Start polling / Stop polling**.
 - **Quit** — fully exit the app.
 
-If `pystray`/`Pillow` aren't installed, closing the window just minimizes it
-instead of hiding to the tray.
+The tray needs `pystray` and `Pillow`. On Linux the tray icon also depends on
+your desktop environment providing a system tray / AppIndicator (most do, some
+minimal setups need an extension).
+
+If `pystray`/`Pillow` aren't installed, there's no tray to hide to, so closing
+the window **quits the app**. You can always exit explicitly with the **Quit**
+button on the **Settings** tab.
 
 ---
 
@@ -240,19 +272,27 @@ instead of hiding to the tray.
 Your configuration (settings, tracked sections, and profiles) is saved to:
 
 ```
-%APPDATA%\ClassAvailability\config.json
+Windows:        %APPDATA%\ClassAvailability\config.json
+Linux / macOS:  ~/.config/ClassAvailability/config.json
 ```
 
 This lives outside the app folder, so you can move or update the app without
 losing your setup. If the file ever becomes corrupted, the app backs it up as
 `config.json.broken` and starts fresh rather than failing to launch.
 
-Your **Gmail App Password is encrypted at rest** using Windows DPAPI (user
-scope) — it is not stored as readable text in `config.json`. Because DPAPI ties
-the encryption to your Windows user account, a `config.json` copied to a
-different account or computer can't decrypt the password, so you'll simply be
-asked to re-enter it there. (Email addresses and other settings are stored in
-the clear, as they aren't secrets.)
+On **Windows**, your **Gmail App Password is encrypted at rest** using Windows
+DPAPI (user scope) — it is not stored as readable text in `config.json`. Because
+DPAPI ties the encryption to your Windows user account, a `config.json` copied to
+a different account or computer can't decrypt the password, so you'll simply be
+asked to re-enter it there.
+
+> **On Linux and macOS there is no DPAPI**, so the App Password is stored as
+> **plaintext** in `config.json`. Keep that file private (it lives under your
+> home directory, readable only by your user by default), and revoke the App
+> Password from your Google account if it's ever exposed.
+
+(Email addresses and other settings are stored in the clear on every platform,
+as they aren't secrets.)
 
 ---
 
@@ -269,5 +309,9 @@ the clear, as they aren't secrets.)
 - **"Request was rejected by VSB's firewall."** The term or course code may be
   invalid, or VSB is temporarily blocking requests. Verify the code and try a
   longer polling interval.
-- **Window or text looks wrong / blurry.** Run via `run-debug.bat` to see log
-  output, and make sure you're on Python 3.10+.
+- **Window or text looks wrong / blurry.** Run with a console to see log output
+  (`run-debug.bat` on Windows, `python3 app.py` on Linux/macOS) and make sure
+  you're on Python 3.10+. (High-DPI sharpening is applied on Windows only.)
+- **`ModuleNotFoundError: No module named 'tkinter'` (Linux).** Install the
+  `tkinter` package for your distro, e.g. `sudo apt install python3-tk` or
+  `sudo dnf install python3-tkinter`.

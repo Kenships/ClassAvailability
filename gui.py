@@ -528,6 +528,7 @@ class App:
         btn_bar.pack(fill=tk.X, pady=(4, 0))
         ttk.Button(btn_bar, text="Save settings", command=self._on_save_settings).pack(side=tk.LEFT)
         ttk.Button(btn_bar, text="Send test email", command=self._on_send_test_email).pack(side=tk.LEFT, padx=8)
+        ttk.Button(btn_bar, text="Quit", command=self.quit_app).pack(side=tk.RIGHT)
         self.settings_msg = ttk.Label(btn_bar, text="", style="Success.TLabel")
         self.settings_msg.pack(side=tk.LEFT, padx=(12, 0))
 
